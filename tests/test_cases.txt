@@ -1,0 +1,36 @@
+TEST 1 - NameError
+
+name = "Charmika"
+print(age)
+
+
+TEST 2 - TypeError
+
+name = "Charmika"
+age = 19
+result = name + age
+print(result)
+
+
+TEST 3 - SyntaxError
+
+def greet()
+    print("Hello")
+
+greet()
+
+
+TEST 4 - IndexError
+
+numbers = [10, 20, 30]
+
+for i in range(len(numbers)):
+    print(numbers[i + 1])
+
+
+TEST 5 - Correct Code
+
+numbers = [10, 20, 30]
+
+for number in numbers:
+    print(number)
