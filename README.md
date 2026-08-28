@@ -1,230 +1,144 @@
 # 🤖 Self-Debugging AI
 
-A local AI-powered Python debugging system that automatically detects errors,
-repairs the code, tests the repaired code, and verifies the repair using
-multiple AI agents.
+A local AI-powered Python debugging system that can automatically analyze,
+repair, test, and verify Python programs using a multi-agent architecture.
+
+The system combines deterministic Python analysis with a local Large
+Language Model (LLM) running through Ollama.
+
+---
 
 ## 📌 Problem Statement
 
-Debugging programming errors manually can take time, especially when the
-error message is difficult to understand.
+Debugging programming errors manually can be time-consuming, especially
+when error messages are difficult to understand or when a generated repair
+introduces a new problem.
 
-This project aims to build an AI-based system that can automatically analyze
-Python code, identify errors, generate a repair, test the repaired code, and
-verify whether the repair is reasonable.
+This project aims to build an intelligent Python debugging system that can:
 
-## 🎯 Objective
+- Detect programming errors
+- Explain detected errors
+- Generate possible repairs
+- Validate generated repairs
+- Execute and test repaired code
+- Verify whether the repair preserves the original intent
+- Reject unsafe repairs
+- Retry failed repairs when appropriate
+
+A key design goal is **safe code repair**. The system should not invent
+unknown values simply to make a program execute successfully.
+
+---
+
+## 🎯 Objectives
 
 The main objectives of this project are:
 
-- Detect errors in Python programs.
-- Explain the detected errors.
-- Automatically generate corrected code.
-- Test the repaired code.
+- Detect Syntax Errors, Runtime Errors, and Logical Errors.
+- Identify common Runtime Errors such as `NameError`, `TypeError`,
+  `IndexError`, `KeyError`, `ZeroDivisionError`, and `AttributeError`.
+- Explain why an error occurs.
+- Automatically generate corrected Python code.
+- Validate repaired code before execution.
+- Execute repaired code in an isolated temporary file.
 - Verify the repair using a Critic Agent.
-- Retry the repair when the Critic Agent rejects it.
-- Run the AI locally without depending on paid API credits.
+- Detect potentially unsafe or unjustified repairs.
+- Retry rejected repairs when another attempt may be useful.
+- Avoid inventing unknown values.
+- Run the AI locally using Ollama and Qwen2.5-Coder.
+
+---
 
 ## 🧠 Multi-Agent Architecture
 
-The project uses four agents:
+The system uses multiple intelligent components working together.
 
 ### 1. 🔍 Debugger Agent
 
-Analyzes the Python code and identifies:
+The Debugger Agent analyzes the original Python code and identifies:
 
-- Syntax errors
-- Runtime errors
-- Logical errors
-- Error types
-- Possible fixes
+- Syntax Errors
+- Runtime Errors
+- Logical Errors
+- Exact error types
+- Possible causes
+- Suggested repairs
+
+For common cases such as undefined variables and missing function
+arguments, deterministic Python analysis is performed before relying on
+the LLM.
+
+---
 
 ### 2. 🔧 Repair Agent
 
-Uses the debugging report to generate corrected Python code.
+The Repair Agent generates corrected Python code based on the debugging
+information.
 
-The Repair Agent is instructed to:
+It is instructed to:
 
-- Fix only the actual error.
+- Fix only the actual problem.
 - Preserve the original purpose.
-- Avoid unnecessary changes.
+- Preserve correct code.
+- Make minimal changes.
+- Avoid unrelated modifications.
+- Avoid inventing values.
 - Return valid Python code.
 
-### 3. 🧪 Testing Agent
+For some error classes, deterministic repair logic is used instead of
+allowing the LLM to freely modify the code.
 
-Runs the repaired Python code in a temporary file.
+---
+
+### 3. 🛡️ Repair Validator
+
+The Repair Validator performs static validation of the generated repair.
 
 It checks:
 
-- Whether the program runs successfully.
-- Program output.
-- Runtime errors.
-- Timeouts.
+- Whether the repaired code is valid Python.
+- Whether undefined variables remain.
+- Whether suspicious values were introduced.
+- Whether unsafe repairs were generated.
+- Whether missing information was incorrectly guessed.
 
-### 4. 🧠 Critic Agent
+This layer prevents the system from accepting a repair merely because
+the code happens to run.
 
-Reviews the repaired code and decides whether the repair is reasonable.
+---
 
-The Critic Agent checks:
+### 4. 🧪 Testing Agent
 
-- Whether the original error was fixed.
+The Testing Agent executes the repaired Python program in a temporary file.
+
+It checks:
+
+- Successful execution
+- Program output
+- Runtime errors
+- Syntax errors during execution
+- Timeouts
+
+The temporary file is removed after testing.
+
+---
+
+### 5. 🧠 Critic Agent
+
+The Critic Agent performs the final verification of a repair.
+
+It checks:
+
+- Whether the original error was actually fixed.
+- Whether the repaired code is valid Python.
 - Whether the repaired code runs successfully.
-- Whether the original purpose was preserved.
+- Whether the original purpose is preserved.
+- Whether the meaning of operators is preserved.
 - Whether unnecessary changes were introduced.
+- Whether arbitrary values were invented.
+- Whether the repaired program is semantically reasonable.
 
 The Critic returns:
 
-- `APPROVED`
-- `REJECTED`
-
-If the repair is rejected, the system attempts another repair.
-
-## 🔄 System Workflow
-
 ```text
-              Python Code
-                   │
-                   ▼
-          🔍 Debugger Agent
-                   │
-                   ▼
-             Error Report
-                   │
-                   ▼
-           🔧 Repair Agent
-                   │
-                   ▼
-            Repaired Code
-                   │
-                   ▼
-          🧪 Testing Agent
-                   │
-                   ▼
-             Test Result
-                   │
-                   ▼
-           🧠 Critic Agent
-              │       │
-          APPROVED   REJECTED
-              │       │
-              ▼       ▼
-           SUCCESS   RETRY
-🛠️ Technologies Used
-Python
-Ollama
-Qwen2.5-Coder 7B
-VS Code
-Python Virtual Environment
-Subprocess
-Temporary files
-💻 Requirements
-
-Before running the project, make sure you have:
-
-Python installed
-Ollama installed
-Qwen2.5-Coder 7B model downloaded
-VS Code (recommended)
-📦 Ollama Model
-
-This project uses:
-
-qwen2.5-coder:7b
-
-The model runs locally through Ollama.
-
-▶️ How to Run
-
-Activate the virtual environment:
-
-.\venv\Scripts\Activate.ps1
-
-Then run:
-
-python main.py
-
-Enter your Python code and type:
-
-END
-on a new line when finished.
-
-🧪 Example
-Input
-name = "Charmika"
-age = 19
-
-result = name + age
-print(result)
-Detected Error
-TypeError
-
-The Debugger Agent identifies that a string and integer cannot be directly
-concatenated using +.
-
-Repaired Code
-name = "Charmika"
-age = 19
-
-result = name + str(age)
-print(result)
-Testing Result
-✅ Status: PASSED
-
-Program Output:
-Charmika19
-Critic Result
 APPROVED
-Final Result
-🎉 SELF-DEBUGGING SUCCESSFUL
-🧪 Tested Error Types
-
-The system has been tested with:
-| Error Type  | Result   |
-| ----------- | -------- |
-| NameError   | ✅ Passed |
-| TypeError   | ✅ Passed |
-| SyntaxError | ✅ Passed |
-| IndexError  | ✅ Passed |
-📁 Project Structure
-Self_Debugging_AI/
-│
-├── main.py
-├── agents.py
-├── README.md
-├── .gitignore
-│
-└── venv/
-The virtual environment should not be uploaded to GitHub.
-
-🔐 Security
-
-Sensitive information such as API keys should not be stored directly in
-the source code.
-
-The .env file should remain in .gitignore.
-
-🚀 Future Improvements
-
-Possible future improvements include:
-
-Graphical User Interface (GUI)
-Support for more programming languages
-Better error classification
-Code quality analysis
-Automatic test-case generation
-Code explanation
-Repair history
-Web-based interface
-Performance optimization
-More advanced local coding models
-👩‍💻 Project Status
-
-Current status:
-
-Working Prototype ✅
-
-The current system can analyze, repair, test, and verify Python code using
-a local multi-agent AI pipeline.
-
-
-
